@@ -1,82 +1,289 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lab S07 - Login + CRUD</title>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lab S07 · Inventario en la nube</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-body{font-family:system-ui,Arial;max-width:760px;margin:2rem auto;padding:0 1rem;color:#222}
-input,button{padding:.5rem;margin:.2rem;font-size:1rem}
-button{cursor:pointer}
-table{border-collapse:collapse;width:100%;margin-top:1rem}
-td,th{border:1px solid #ccc;padding:.4rem;text-align:left}
-.badge{background:#0b5;color:#fff;padding:.2rem .6rem;border-radius:1rem;font-size:.85rem}
-.err{color:#c00}
-.hidden{display:none}
-</style></head><body>
-<h1>Lab S07 — Login + CRUD</h1>
-<p>Servido por: <span class="badge" id="inst">...</span></p>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --brand:#2563eb; --brand-d:#1d4ed8; --brand-soft:#eaf1ff;
+  --ok:#059669; --ok-soft:#e6f7f0; --danger:#dc2626; --danger-soft:#fdecec; --warn:#d97706;
+  --radius:14px; --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.hidden{display:none!important}
+button,input{font:inherit}
 
-<section id="login">
-  <h2>Ingresar</h2>
-  <input id="u" placeholder="Usuario"><input id="p" type="password" placeholder="Contraseña">
-  <button onclick="login()">Entrar</button><button onclick="registro()">Registrarse</button>
-  <p class="err" id="msg"></p>
+/* ---------- Login ---------- */
+.auth{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr}
+.auth-hero{background:#0b1220;color:#e5ecff;padding:56px 56px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.auth-hero::after{content:"";position:absolute;inset:auto -120px -160px auto;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(37,99,235,.55),rgba(37,99,235,0) 65%)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em}
+.logo-mark{width:34px;height:34px;border-radius:10px;background:var(--brand);display:grid;place-items:center}
+.logo-mark svg{width:20px;height:20px}
+.auth-hero h1{font-size:40px;line-height:1.1;letter-spacing:-.03em;margin:0 0 14px;max-width:440px}
+.auth-hero p{color:#9fb0d6;max-width:420px;line-height:1.6;margin:0}
+.arch{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px;position:relative;z-index:1}
+.arch span{border:1px solid rgba(159,176,214,.25);border-radius:999px;padding:6px 12px;font-size:12.5px;color:#c7d4f3}
+.auth-panel{display:grid;place-items:center;padding:32px 20px;background:var(--card)}
+.auth-box{width:100%;max-width:380px}
+.auth-box h2{font-size:26px;letter-spacing:-.02em;margin:0 0 6px}
+.auth-box .sub{color:var(--muted);margin:0 0 26px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:22px}
+.tabs button{border:0;background:transparent;padding:9px;border-radius:8px;font-weight:600;color:var(--muted);cursor:pointer}
+.tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(15,23,42,.1)}
+label{display:block;font-size:13px;font-weight:600;margin:0 0 6px}
+.field{margin-bottom:16px}
+input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;transition:background .15s,transform .05s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-d)}
+.btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--bg)}
+.btn-block{width:100%}
+.btn-sm{padding:7px 11px;font-size:13px;border-radius:8px}
+.btn-danger{background:var(--danger-soft);color:var(--danger)}
+.btn-danger:hover{background:#fbdcdc}
+.msg{min-height:20px;font-size:13.5px;margin-top:12px}
+.msg.err{color:var(--danger)} .msg.ok{color:var(--ok)}
+
+/* ---------- App ---------- */
+.topbar{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1080px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px}
+.topbar .logo{color:var(--ink)}
+.spacer{flex:1}
+.node{display:flex;align-items:center;gap:8px;background:var(--ok-soft);color:var(--ok);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600}
+.node i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(5,150,105,.5);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(5,150,105,0)}100%{box-shadow:0 0 0 0 rgba(5,150,105,0)}}
+.user{display:flex;align-items:center;gap:10px;font-size:14px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;text-transform:uppercase}
+main{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.head h2{margin:0;font-size:26px;letter-spacing:-.02em}
+.head p{margin:4px 0 0;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.stat{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.stat small{color:var(--muted);font-weight:500}
+.stat b{display:block;font-size:26px;letter-spacing:-.02em;margin-top:6px}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-h{padding:18px 20px;border-bottom:1px solid var(--line);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.card-b{padding:20px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-actions{display:flex;gap:10px;margin-top:6px}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:12px 20px;background:#fafbfe}
+td{padding:14px 20px;border-top:1px solid var(--line);font-size:14.5px}
+td.num,th.num{text-align:right}
+tr:hover td{background:#fafcff}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:600}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.low{background:#fff4e0;color:var(--warn)}
+.pill.zero{background:var(--danger-soft);color:var(--danger)}
+.acts{display:flex;gap:8px;justify-content:flex-end}
+.empty{padding:48px 20px;text-align:center;color:var(--muted)}
+.empty svg{width:44px;height:44px;opacity:.5;margin-bottom:8px}
+.toast{position:fixed;right:20px;bottom:20px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);transform:translateY(20px);opacity:0;transition:.25s;z-index:20;font-size:14px}
+.toast.show{transform:none;opacity:1}
+
+@media (max-width:900px){
+  .auth{grid-template-columns:1fr}
+  .auth-hero{display:none}
+  .grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr}
+  .node span.t{display:none}
+  .user .name{display:none}
+  th:nth-child(1),td:nth-child(1){display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<section id="auth" class="auth">
+  <div class="auth-hero">
+    <div class="logo"><div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/><path d="m3 17.5 9 5 9-5" opacity=".5"/></svg></div>Lab S07 · Cloud</div>
+    <div>
+      <h1>Inventario en la nube con alta disponibilidad</h1>
+      <p>Aplicación de login y CRUD desplegada en AWS. Cada petición la atiende un servidor distinto detrás de un balanceador de carga.</p>
+      <div class="arch"><span>Application Load Balancer</span><span>2 × EC2 · 2 zonas</span><span>Amazon RDS MySQL</span><span>Sesión con JWT</span></div>
+    </div>
+    <div style="font-size:13px;color:#7f92bd">Desarrollo de Soluciones en la Nube</div>
+  </div>
+  <div class="auth-panel">
+    <div class="auth-box">
+      <h2 id="authTitle">Bienvenido</h2>
+      <p class="sub" id="authSub">Ingresa con tu cuenta para gestionar el inventario.</p>
+      <div class="tabs">
+        <button id="tabLogin" class="on" type="button">Ingresar</button>
+        <button id="tabReg" type="button">Crear cuenta</button>
+      </div>
+      <form id="authForm" autocomplete="on">
+        <div class="field"><label for="u">Usuario</label><input id="u" placeholder="tu_usuario" autocomplete="username" required></div>
+        <div class="field"><label for="p">Contraseña</label><input id="p" type="password" placeholder="Mínimo 4 caracteres" autocomplete="current-password" required></div>
+        <button class="btn btn-primary btn-block" id="authBtn" type="submit">Ingresar</button>
+        <div class="msg" id="msg"></div>
+      </form>
+      <div style="margin-top:22px"><div class="node" style="display:inline-flex"><i></i><span class="t">Servido por&nbsp;</span><span id="inst1">…</span></div></div>
+    </div>
+  </div>
 </section>
 
-<section id="crud" class="hidden">
-  <p>Hola, <b id="who"></b> <button onclick="logout()">Salir</button></p>
-  <h2>Productos</h2>
-  <input type="hidden" id="pid">
-  <input id="nombre" placeholder="Nombre"><input id="precio" type="number" step="0.01" placeholder="Precio"><input id="stock" type="number" placeholder="Stock">
-  <button onclick="guardar()">Guardar</button><button onclick="limpiar()">Limpiar</button>
-  <table><thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th></th></tr></thead><tbody id="tb"></tbody></table>
-</section>
+<!-- App -->
+<div id="app" class="hidden">
+  <header class="topbar"><div class="topbar-in">
+    <div class="logo"><div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg></div>Inventario</div>
+    <div class="spacer"></div>
+    <div class="node" title="Servidor que respondió esta página"><i></i><span class="t">Servido por&nbsp;</span><span id="inst2">…</span></div>
+    <div class="user"><div class="avatar" id="av">?</div><span class="name" id="who"></span><button class="btn btn-ghost btn-sm" id="logout" type="button">Salir</button></div>
+  </div></header>
+
+  <main>
+    <div class="head">
+      <div><h2>Productos</h2><p>Crea, edita y elimina productos del inventario.</p></div>
+      <button class="btn btn-ghost btn-sm" id="refresh" type="button">↻ Actualizar</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><small>Productos</small><b id="sCount">0</b></div>
+      <div class="stat"><small>Unidades en stock</small><b id="sUnits">0</b></div>
+      <div class="stat"><small>Valor del inventario</small><b id="sValue">S/ 0.00</b></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-h"><span id="formTitle">Nuevo producto</span></div>
+        <form class="card-b" id="pForm">
+          <input type="hidden" id="pid">
+          <div class="field"><label for="nombre">Nombre</label><input id="nombre" placeholder="Ej. Laptop" required></div>
+          <div class="row2">
+            <div class="field"><label for="precio">Precio</label><input id="precio" type="number" step="0.01" min="0" placeholder="0.00" required></div>
+            <div class="field"><label for="stock">Stock</label><input id="stock" type="number" step="1" min="0" placeholder="0" required></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" id="saveBtn" type="submit">Guardar</button>
+            <button class="btn btn-ghost" id="cancel" type="button">Limpiar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" style="overflow:hidden">
+        <div class="card-h"><span>Listado</span></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>ID</th><th>Producto</th><th class="num">Precio</th><th>Stock</th><th></th></tr></thead>
+            <tbody id="tb"></tbody>
+          </table>
+        </div>
+        <div class="empty hidden" id="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>
+          <div>Aún no hay productos. Agrega el primero con el formulario.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
 const $ = id => document.getElementById(id);
-let productos = [];
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => 'S/ ' + Number(n).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+let productos = [], modoRegistro = false, toastT;
 
 async function api(url, method = 'GET', body) {
   const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || 'Error');
+  if (!r.ok) { if (r.status === 401 && url !== '/api/login') volverAlLogin(); throw new Error(d.error || 'Error'); }
   return d;
 }
-async function instancia() { const d = await api('/api/instancia'); $('inst').textContent = d.host + ':' + d.port; }
-async function login() {
-  try { await api('/api/login', 'POST', { username: $('u').value, password: $('p').value }); iniciar(); }
-  catch (e) { $('msg').textContent = e.message; }
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2600); }
+
+/* Nodo que atiende la petición (evidencia del balanceo) */
+async function nodo() {
+  try { const d = await api('/api/instancia'); const t = d.host.replace('.ec2.internal', '') + ':' + d.port; $('inst1').textContent = t; $('inst2').textContent = t; } catch (e) {}
 }
-async function registro() {
-  try { await api('/api/register', 'POST', { username: $('u').value, password: $('p').value }); $('msg').textContent = 'Registrado, ahora ingresa'; }
-  catch (e) { $('msg').textContent = e.message; }
+
+/* Login / registro */
+function setModo(reg) {
+  modoRegistro = reg;
+  $('tabLogin').classList.toggle('on', !reg); $('tabReg').classList.toggle('on', reg);
+  $('authBtn').textContent = reg ? 'Crear cuenta' : 'Ingresar';
+  $('authTitle').textContent = reg ? 'Crea tu cuenta' : 'Bienvenido';
+  $('authSub').textContent = reg ? 'Regístrate para empezar a usar el inventario.' : 'Ingresa con tu cuenta para gestionar el inventario.';
+  $('p').autocomplete = reg ? 'new-password' : 'current-password';
+  $('msg').textContent = ''; $('msg').className = 'msg';
 }
-async function logout() { await api('/api/logout', 'POST'); location.reload(); }
-async function iniciar() {
+$('tabLogin').onclick = () => setModo(false);
+$('tabReg').onclick = () => setModo(true);
+$('authForm').onsubmit = async e => {
+  e.preventDefault();
+  const b = { username: $('u').value.trim(), password: $('p').value };
+  $('authBtn').disabled = true; $('msg').className = 'msg'; $('msg').textContent = '';
   try {
-    const m = await api('/api/me');
-    $('who').textContent = m.username;
-    $('login').classList.add('hidden');
-    $('crud').classList.remove('hidden');
-    listar();
-  } catch (e) { /* sin sesión */ }
+    if (modoRegistro) {
+      await api('/api/register', 'POST', b);
+      setModo(false); $('msg').className = 'msg ok'; $('msg').textContent = 'Cuenta creada. Ahora ingresa.';
+    } else {
+      await api('/api/login', 'POST', b); await entrar();
+    }
+  } catch (err) { $('msg').className = 'msg err'; $('msg').textContent = err.message; }
+  $('authBtn').disabled = false;
+};
+
+async function entrar() {
+  const m = await api('/api/me');
+  $('who').textContent = m.username; $('av').textContent = m.username.charAt(0);
+  $('auth').classList.add('hidden'); $('app').classList.remove('hidden');
+  await listar();
 }
+function volverAlLogin() { $('app').classList.add('hidden'); $('auth').classList.remove('hidden'); }
+$('logout').onclick = async () => { await api('/api/logout', 'POST'); location.reload(); };
+
+/* CRUD */
+function stockPill(n) { return n === 0 ? '<span class="pill zero">Agotado</span>' : n < 5 ? `<span class="pill low">${n} · bajo</span>` : `<span class="pill ok">${n}</span>`; }
 async function listar() {
   productos = await api('/api/productos');
-  $('tb').innerHTML = productos.map(p => `<tr><td>${p.id}</td><td>${esc(p.nombre)}</td><td>${p.precio}</td><td>${p.stock}</td>
-    <td><button onclick="editar(${p.id})">Editar</button><button onclick="borrar(${p.id})">Borrar</button></td></tr>`).join('');
+  $('tb').innerHTML = productos.map(p => `<tr>
+    <td>#${p.id}</td><td><b>${esc(p.nombre)}</b></td><td class="num">${money(p.precio)}</td><td>${stockPill(p.stock)}</td>
+    <td><div class="acts"><button class="btn btn-ghost btn-sm" data-e="${p.id}">Editar</button><button class="btn btn-danger btn-sm" data-d="${p.id}">Borrar</button></div></td></tr>`).join('');
+  $('empty').classList.toggle('hidden', productos.length > 0);
+  $('sCount').textContent = productos.length;
+  $('sUnits').textContent = productos.reduce((a, p) => a + p.stock, 0);
+  $('sValue').textContent = money(productos.reduce((a, p) => a + p.stock * Number(p.precio), 0));
 }
-async function guardar() {
-  const b = { nombre: $('nombre').value, precio: $('precio').value, stock: $('stock').value };
+$('tb').onclick = async e => {
+  const ed = e.target.closest('[data-e]'), de = e.target.closest('[data-d]');
+  if (ed) {
+    const p = productos.find(x => x.id === Number(ed.dataset.e));
+    $('pid').value = p.id; $('nombre').value = p.nombre; $('precio').value = p.precio; $('stock').value = p.stock;
+    $('formTitle').textContent = 'Editar producto #' + p.id; $('saveBtn').textContent = 'Actualizar'; $('nombre').focus();
+  }
+  if (de && confirm('¿Eliminar este producto?')) { await api('/api/productos/' + de.dataset.d, 'DELETE'); toast('Producto eliminado'); listar(); }
+};
+function limpiar() { ['pid', 'nombre', 'precio', 'stock'].forEach(i => $(i).value = ''); $('formTitle').textContent = 'Nuevo producto'; $('saveBtn').textContent = 'Guardar'; }
+$('cancel').onclick = limpiar;
+$('pForm').onsubmit = async e => {
+  e.preventDefault();
+  const b = { nombre: $('nombre').value.trim(), precio: $('precio').value, stock: $('stock').value }, id = $('pid').value;
   try {
-    if ($('pid').value) await api('/api/productos/' + $('pid').value, 'PUT', b);
-    else await api('/api/productos', 'POST', b);
-    limpiar(); listar();
-  } catch (e) { alert(e.message); }
-}
-function editar(id) {
-  const p = productos.find(x => x.id === id);
-  $('pid').value = p.id; $('nombre').value = p.nombre; $('precio').value = p.precio; $('stock').value = p.stock;
-}
-function limpiar() { ['pid', 'nombre', 'precio', 'stock'].forEach(i => $(i).value = ''); }
-async function borrar(id) { if (confirm('¿Borrar?')) { await api('/api/productos/' + id, 'DELETE'); listar(); } }
-instancia(); iniciar();
-</script></body></html>
+    if (id) await api('/api/productos/' + id, 'PUT', b); else await api('/api/productos', 'POST', b);
+    toast(id ? 'Producto actualizado' : 'Producto creado'); limpiar(); listar();
+  } catch (err) { toast(err.message); }
+};
+$('refresh').onclick = () => { listar(); nodo(); toast('Lista actualizada'); };
+
+nodo();
+api('/api/me').then(entrar).catch(() => {});
+</script>
+</body>
+</html>
