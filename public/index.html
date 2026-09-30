@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lab S07 - Login + CRUD</title>
+<style>
+body{font-family:system-ui,Arial;max-width:760px;margin:2rem auto;padding:0 1rem;color:#222}
+input,button{padding:.5rem;margin:.2rem;font-size:1rem}
+button{cursor:pointer}
+table{border-collapse:collapse;width:100%;margin-top:1rem}
+td,th{border:1px solid #ccc;padding:.4rem;text-align:left}
+.badge{background:#0b5;color:#fff;padding:.2rem .6rem;border-radius:1rem;font-size:.85rem}
+.err{color:#c00}
+.hidden{display:none}
+</style></head><body>
+<h1>Lab S07 — Login + CRUD</h1>
+<p>Servido por: <span class="badge" id="inst">...</span></p>
+
+<section id="login">
+  <h2>Ingresar</h2>
+  <input id="u" placeholder="Usuario"><input id="p" type="password" placeholder="Contraseña">
+  <button onclick="login()">Entrar</button><button onclick="registro()">Registrarse</button>
+  <p class="err" id="msg"></p>
+</section>
+
+<section id="crud" class="hidden">
+  <p>Hola, <b id="who"></b> <button onclick="logout()">Salir</button></p>
+  <h2>Productos</h2>
+  <input type="hidden" id="pid">
+  <input id="nombre" placeholder="Nombre"><input id="precio" type="number" step="0.01" placeholder="Precio"><input id="stock" type="number" placeholder="Stock">
+  <button onclick="guardar()">Guardar</button><button onclick="limpiar()">Limpiar</button>
+  <table><thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th></th></tr></thead><tbody id="tb"></tbody></table>
+</section>
+<script>
+const $ = id => document.getElementById(id);
+let productos = [];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function api(url, method = 'GET', body) {
+  const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Error');
+  return d;
+}
+async function instancia() { const d = await api('/api/instancia'); $('inst').textContent = d.host + ':' + d.port; }
+async function login() {
+  try { await api('/api/login', 'POST', { username: $('u').value, password: $('p').value }); iniciar(); }
+  catch (e) { $('msg').textContent = e.message; }
+}
+async function registro() {
+  try { await api('/api/register', 'POST', { username: $('u').value, password: $('p').value }); $('msg').textContent = 'Registrado, ahora ingresa'; }
+  catch (e) { $('msg').textContent = e.message; }
+}
+async function logout() { await api('/api/logout', 'POST'); location.reload(); }
+async function iniciar() {
+  try {
+    const m = await api('/api/me');
+    $('who').textContent = m.username;
+    $('login').classList.add('hidden');
+    $('crud').classList.remove('hidden');
+    listar();
+  } catch (e) { /* sin sesión */ }
+}
+async function listar() {
+  productos = await api('/api/productos');
+  $('tb').innerHTML = productos.map(p => `<tr><td>${p.id}</td><td>${esc(p.nombre)}</td><td>${p.precio}</td><td>${p.stock}</td>
+    <td><button onclick="editar(${p.id})">Editar</button><button onclick="borrar(${p.id})">Borrar</button></td></tr>`).join('');
+}
+async function guardar() {
+  const b = { nombre: $('nombre').value, precio: $('precio').value, stock: $('stock').value };
+  try {
+    if ($('pid').value) await api('/api/productos/' + $('pid').value, 'PUT', b);
+    else await api('/api/productos', 'POST', b);
+    limpiar(); listar();
+  } catch (e) { alert(e.message); }
+}
+function editar(id) {
+  const p = productos.find(x => x.id === id);
+  $('pid').value = p.id; $('nombre').value = p.nombre; $('precio').value = p.precio; $('stock').value = p.stock;
+}
+function limpiar() { ['pid', 'nombre', 'precio', 'stock'].forEach(i => $(i).value = ''); }
+async function borrar(id) { if (confirm('¿Borrar?')) { await api('/api/productos/' + id, 'DELETE'); listar(); } }
+instancia(); iniciar();
+</script></body></html>
