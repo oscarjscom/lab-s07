@@ -74,4 +74,17 @@ app.delete('/api/productos/:id', auth, async (req, res) => {
   r.affectedRows ? res.json({ ok: true }) : res.status(404).json({ error: 'No existe' });
 });
 
+async function initDb() {
+  await pool.query(`CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(100) NOT NULL)`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    precio DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL DEFAULT 0)`);
+}
+initDb().catch(e => console.error('initDb:', e.message));
+
 app.listen(PORT, () => console.log(`App escuchando en puerto ${PORT}`));
